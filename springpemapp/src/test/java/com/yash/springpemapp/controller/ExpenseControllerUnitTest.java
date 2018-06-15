@@ -1,8 +1,8 @@
 package com.yash.springpemapp.controller;
 
-import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -20,9 +20,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.results.ResultMatchers;
 import org.mockito.InjectMocks;
-import org.mockito.Matchers;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
@@ -30,13 +28,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.glass.ui.Size;
 import com.yash.springpemapp.domain.Expense;
 import com.yash.springpemapp.service.ExpenseService;
 
 public class ExpenseControllerUnitTest {
 
-	private MockMvc mockmvc;
+	private MockMvc mockMvc;
 	
 	@Mock
 	private ExpenseService expenseService;
@@ -47,17 +44,17 @@ public class ExpenseControllerUnitTest {
 	@Before
 	public void init() {
 		MockitoAnnotations.initMocks(this);
-		mockmvc = MockMvcBuilders.standaloneSetup(expenseController).build();
+		mockMvc = MockMvcBuilders.standaloneSetup(expenseController).build();
 	}
 	
 	@Test
-	public void getAllExpenses_ShouldGiveListOf() throws Exception {
+	public void getAllExpenses_ShouldGiveListOfExpenses() throws Exception {
 		List<Expense> expenses = Arrays.asList(new Expense(1, 4, 200, Date.valueOf("2018-06-09"), "food expenses"),
 					  new Expense(5, 4, 200, Date.valueOf("2018-06-09"), "food expenses"));
 		
 		when(expenseService.findAll()).thenReturn(expenses);
 		
-		mockmvc.perform(get("/expenses"))
+		mockMvc.perform(get("/expenses"))
 				.andExpect(status().isOk())
 				.andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
 				.andExpect(jsonPath("$", hasSize(2)))
@@ -72,13 +69,41 @@ public class ExpenseControllerUnitTest {
 	}
 	
 	@Test
+	public void findById_ExpenseIdGiven_ShouldReturnExpenseOfThatId() throws Exception {
+		Expense expense = new Expense(1, 4, 200, Date.valueOf("2018-06-09"), "Food Expenses");
+		
+		when(expenseService.findById(expense.getId())).thenReturn(expense);
+		
+		mockMvc.perform(get("/expense/{expenseId}", expense.getId()))
+        		.andExpect(status().isOk())
+        		.andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+        		.andExpect(jsonPath("$.id", is(1)))
+        		.andExpect(jsonPath("$.remark", is("Food Expenses")));
+		
+		verify(expenseService, times(1)).findById(1);
+		verifyNoMoreInteractions(expenseService);
+	}
+	
+	@Test
+	public void findById_ExpenseInvalidIdGiven_ShouldReturnStatus_Not_Found() throws Exception {
+		
+		when(expenseService.findById(0)).thenReturn(null);
+	    mockMvc.perform(get("/expense/{expenseId}", 0))
+	            .andExpect(status().isNotFound());
+	    
+	    verify(expenseService, times(1)).findById(0);
+	    verifyNoMoreInteractions(expenseService);
+	    
+	}
+	
+	@Test
 	public void updateExpense_ExpenseGiven_ShouldReturnStatusOk() throws Exception {
 		Expense expense = new Expense(3, 4, 200, Date.valueOf("2018-06-3"), "food expenses");
 		
 		when(expenseService.findById(expense.getId())).thenReturn(expense);
 		doNothing().when(expenseService).update(expense);
 		
-		mockmvc.perform(
+		mockMvc.perform(
 				put("/expense")
 			.contentType(MediaType.APPLICATION_JSON)
 			.content(asJsonString(expense)))
@@ -90,12 +115,12 @@ public class ExpenseControllerUnitTest {
 	}
 
 	@Test
-	public void updateExpense_WhenExpenseNotFound_ShouldReturnStatusNot_Found() throws Exception {
+	public void updateExpense_WhenExpenseNotFound_ShouldReturnStatus_Not_Found() throws Exception {
 		Expense expense = new Expense(0, 4, 200, Date.valueOf("2018-06-09"), "food expenses");
 		
 		when(expenseService.findById(expense.getId())).thenReturn(null);
 		
-		mockmvc.perform(
+		mockMvc.perform(
 				put("/expense")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(asJsonString(expense)))
@@ -103,6 +128,11 @@ public class ExpenseControllerUnitTest {
 		
 		verify(expenseService, times(1)).findById(expense.getId());
 		verifyNoMoreInteractions(expenseService);
+		
+	}
+	
+	@Test
+	public void deleteExpenseById_ExpenseIdGiven_ShouldReturnStatusOk() throws Exception {
 		
 	}
 	

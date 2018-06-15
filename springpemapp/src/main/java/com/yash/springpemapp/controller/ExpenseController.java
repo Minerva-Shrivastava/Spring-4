@@ -32,9 +32,14 @@ public class ExpenseController {
 		return expenseService.findByProperty("categoryId", categoryId);
 	}
 	
+	@SuppressWarnings("rawtypes")
 	@GetMapping("/expense/{expenseId}")
-	public Expense getExpensesByExpenseId(@PathVariable Integer expenseId){
-		return expenseService.findById(expenseId);
+	public ResponseEntity getExpensesByExpenseId(@PathVariable Integer expenseId){
+			Expense expense = expenseService.findById(expenseId);
+			if(expense == null) {
+				return new ResponseEntity(HttpStatus.NOT_FOUND);
+			}
+			return new ResponseEntity<Expense>(expense, HttpStatus.OK);
 	}
 	
 	@GetMapping(value = "/expenses/{propertyName}/{propertyValue}")
@@ -49,7 +54,7 @@ public class ExpenseController {
 		return new ResponseEntity(expense,HttpStatus.OK);
 	}
 	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({ "rawtypes" })
 	@PutMapping("/expense")
 	public ResponseEntity updateExpense(@RequestBody Expense expense) {
 		Expense expenseGiven = expenseService.findById(expense.getId());
